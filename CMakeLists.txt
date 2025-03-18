@@ -49,8 +49,10 @@ find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
 
 # ROS dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(rclpy REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -64,6 +66,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 set(dependencies
   rclcpp
+  rclpy
   rclcpp_components
   geometry_msgs
   nav_msgs
@@ -123,6 +126,14 @@ install(TARGETS fastlio_mapping
 install(
   DIRECTORY config launch rviz
   DESTINATION share/${PROJECT_NAME}
+)
+
+ament_python_install_package(${PROJECT_NAME})
+
+# Install Python executables
+install(PROGRAMS
+  scripts/global_localization.py scripts/publish_initial_pose.py scripts/transform_fusion.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_package()

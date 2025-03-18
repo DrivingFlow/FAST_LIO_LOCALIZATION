@@ -18,13 +18,6 @@ enum LID_TYPE
   OUST64,
   MID360
 };  //{1, 2, 3}
-enum TIME_UNIT
-{
-  SEC = 0,
-  MS = 1,
-  US = 2,
-  NS = 3
-};
 enum Feature
 {
   Nor,
@@ -52,7 +45,7 @@ enum E_jump
 struct orgtype
 {
   double range;
-  double dista;
+  double dista; 
   double angle[2];
   double intersect;
   E_jump edj[2];
@@ -67,35 +60,35 @@ struct orgtype
   }
 };
 
-namespace velodyne_ros
-{
-struct EIGEN_ALIGN16 Point
-{
-  PCL_ADD_POINT4D;
-  float intensity;
-  float time;
-  uint16_t ring;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
+namespace velodyne_ros {
+  struct EIGEN_ALIGN16 Point {
+      PCL_ADD_POINT4D;
+      float intensity;
+      float time;
+      uint16_t ring;
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  };
 }  // namespace velodyne_ros
 POINT_CLOUD_REGISTER_POINT_STRUCT(velodyne_ros::Point,
-                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity,
-                                                                          intensity)(float, time, time)(uint16_t, ring,
-                                                                                                        ring))
+    (float, x, x)
+    (float, y, y)
+    (float, z, z)
+    (float, intensity, intensity)
+    (float, time, time)
+    (uint16_t, ring, ring)
+)
 
-namespace ouster_ros
-{
-struct EIGEN_ALIGN16 Point
-{
-  PCL_ADD_POINT4D;
-  float intensity;
-  uint32_t t;
-  uint16_t reflectivity;
-  uint8_t ring;
-  uint16_t ambient;
-  uint32_t range;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
+namespace ouster_ros {
+  struct EIGEN_ALIGN16 Point {
+      PCL_ADD_POINT4D;
+      float intensity;
+      uint32_t t;
+      uint16_t reflectivity;
+      uint8_t  ring;
+      uint16_t ambient;
+      uint32_t range;
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  };
 }  // namespace ouster_ros
 
 // clang-format off
@@ -166,13 +159,13 @@ class Preprocess
   PointCloudXYZI pl_full, pl_corn, pl_surf;
   PointCloudXYZI pl_buff[128]; //maximum 128 line lidar
   vector<orgtype> typess[128]; //maximum 128 line lidar
-  float time_unit_scale;
-  int lidar_type, point_filter_num, N_SCANS, SCAN_RATE, time_unit;
+  int lidar_type, point_filter_num, N_SCANS;;
   double blind;
+  double max_scan_range;
   bool feature_enabled, given_offset_time;
   // ros::Publisher pub_full, pub_surf, pub_corn;
-
-private:
+  
+  private:
   void avia_handler(const livox_ros_driver2::msg::CustomMsg::UniquePtr &msg);
   void oust64_handler(const sensor_msgs::msg::PointCloud2::UniquePtr &msg);
   void velodyne_handler(const sensor_msgs::msg::PointCloud2::UniquePtr &msg);

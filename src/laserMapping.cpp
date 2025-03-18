@@ -839,11 +839,11 @@ public:
         kf.init_dyn_share(get_f, df_dx, df_dw, h_share_model, NUM_MAX_ITERATIONS, epsi);
 
         /*** debug record ***/
-        FILE *fp;
+        // FILE *fp;
         string pos_log_dir = root_dir + "/Log/pos_log.txt";
         fp = fopen(pos_log_dir.c_str(), "w");
 
-        ofstream fout_pre, fout_out, fout_dbg;
+        // ofstream fout_pre, fout_out, fout_dbg;
         fout_pre.open(DEBUG_FILE_DIR("mat_pre.txt"), ios::out);
         fout_out.open(DEBUG_FILE_DIR("mat_out.txt"), ios::out);
         fout_dbg.open(DEBUG_FILE_DIR("dbg.txt"), ios::out);

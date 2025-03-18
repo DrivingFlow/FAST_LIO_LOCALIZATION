@@ -554,7 +554,7 @@ void publish_effect_world(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::Shar
     pubLaserCloudEffect->publish(laserCloudFullRes3);
 }
 
-void publish_map(const ros::Publisher &pubLaserCloudMap)
+void publish_map(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudMap)
 {
     sensor_msgs::msg::PointCloud2 laserCloudMap;
     pcl::toROSMsg(*featsFromMap, laserCloudMap);
@@ -736,7 +736,7 @@ class LaserMappingNode : public rclcpp::Node
 public:
     LaserMappingNode(const rclcpp::NodeOptions &options = rclcpp::NodeOptions()) : Node("laser_mapping", options)
     {
-        this->declare_parameter<bool>("publish.path_en", true);
+        // this->declare_parameter<bool>("publish.path_en", true);
         this->declare_parameter<bool>("publish.effect_map_en", false);
         this->declare_parameter<bool>("publish.map_en", false);
         this->declare_parameter<bool>("publish.scan_publish_en", true);
@@ -761,7 +761,7 @@ public:
         this->declare_parameter<double>("preprocess.blind", 0.01);
         this->declare_parameter<int>("preprocess.lidar_type", AVIA);
         this->declare_parameter<int>("preprocess.scan_line", 16);
-        this->declare_parameter<int>("preprocess.timestamp_unit", US);
+        // this->declare_parameter<int>("preprocess.timestamp_unit", US);
         this->declare_parameter<int>("preprocess.scan_rate", 10);
         this->declare_parameter<int>("point_filter_num", 2);
         this->declare_parameter<bool>("feature_extract_enable", false);
@@ -769,7 +769,7 @@ public:
         this->declare_parameter<bool>("pcd_save.pcd_save_en", false);
         this->declare_parameter<vector<double>>("mapping.extrinsic_T", vector<double>());
         this->declare_parameter<vector<double>>("mapping.extrinsic_R", vector<double>());
-        this->get_parameter_or<bool>("publish.path_en", path_en, true);
+        // this->get_parameter_or<bool>("publish.path_en", path_en, true);
         this->get_parameter_or<bool>("publish.effect_map_en", effect_pub_en, false);
         this->get_parameter_or<bool>("publish.map_en", map_pub_en, false);
         this->get_parameter_or<bool>("publish.scan_publish_en", scan_pub_en, true);
@@ -795,8 +795,8 @@ public:
         this->get_parameter_or<double>("preprocess.max_range", p_pre->max_scan_range, 100.f);
         this->get_parameter_or<int>("preprocess.lidar_type", p_pre->lidar_type, AVIA);
         this->get_parameter_or<int>("preprocess.scan_line", p_pre->N_SCANS, 16);
-        this->get_parameter_or<int>("preprocess.timestamp_unit", p_pre->time_unit, US);
-        this->get_parameter_or<int>("preprocess.scan_rate", p_pre->SCAN_RATE, 10);
+        // this->get_parameter_or<int>("preprocess.timestamp_unit", p_pre->time_unit, US);
+        // this->get_parameter_or<int>("preprocess.scan_rate", p_pre->SCAN_RATE, 10);
         this->get_parameter_or<int>("point_filter_num", p_pre->point_filter_num, 2);
         this->get_parameter_or<bool>("feature_extract_enable", p_pre->feature_enabled, false);
         this->get_parameter_or<bool>("runtime_pos_log_enable", runtime_pos_log, 0);
@@ -806,7 +806,7 @@ public:
 
         RCLCPP_INFO(this->get_logger(), "p_pre->lidar_type %d", p_pre->lidar_type);
 
-            path.header.stamp = this->get_clock()->now();
+        path.header.stamp = this->get_clock()->now();
         path.header.frame_id = "camera_init";
 
         /*** variables definition ***/
@@ -870,7 +870,7 @@ public:
         pubPath_ = this->create_publisher<nav_msgs::msg::Path>("/path", 20);
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-    //------------------------------------------------------------------------------------------------------
+        //------------------------------------------------------------------------------------------------------
         auto period_ms = std::chrono::milliseconds(static_cast<int64_t>(5000.0 / 100.0));
         timer_ = rclcpp::create_timer(this, this->get_clock(), period_ms, std::bind(&LaserMappingNode::timer_callback, this));
 
@@ -1044,7 +1044,7 @@ private:
         }
     }
 
-    private:
+private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_body_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudEffect_;

@@ -70,8 +70,8 @@ def generate_launch_description():
         executable="pcd_to_pointcloud",
         name="map_publisher",
         output="screen",
+        parameters=[{"file_name": pcd_map_path}],
         arguments=[
-            pcd_map_path,
             "5",
             "--remap _frame_id:=map",
             TextSubstitution(text="cloud_pcd:="),

@@ -74,7 +74,7 @@ def generate_launch_description():
             pcd_map_path,
             "5",
             "--remap _frame_id:=map",
-            TextSubstitution("cloud_pcd:="),
+            TextSubstitution(text="cloud_pcd:="),
             pcd_map_topic,
         ],
     )

@@ -1,67 +1,99 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, TextSubstitution
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+
 import os
 
 
 def generate_launch_description():
-    return LaunchDescription(
-        [
-            # Declare arguments
-            DeclareLaunchArgument("rviz", default_value="true", description="Launch RViz"),
-            DeclareLaunchArgument("map", default_value="", description="Path to PCD map file"),
-            DeclareLaunchArgument("pcd_map_topic", default_value="/map", description="Topic to publish PCD map"),
-            # Load parameters from yaml file
-            Node(
-                package="fast_lio_localization",
-                executable="fastlio_mapping",
-                name="laserMapping",
-                output="screen",
-                parameters=[os.path.join(os.getenv("FAST_LIO_LOCALIZATION_DIR"), "config", "mid360.yaml")],
-            ),
-            # Global localization node
-            Node(
-                package="fast_lio_localization",
-                executable="global_localization.py",
-                name="global_localization",
-                output="screen",
-            ),
-            # Transform fusion node
-            Node(
-                package="fast_lio_localization",
-                executable="transform_fusion.py",
-                name="transform_fusion",
-                output="screen",
-            ),
-            # PCD to PointCloud2 publisher
-            Node(
-                package="pcl_ros",
-                executable="pcd_to_pointcloud",
-                name="map_publisher",
-                output="screen",
-                arguments=[
-                    LaunchConfiguration("map"),
-                    "5",
-                    "_frame_id:=map",
-                    "cloud_pcd:=" + LaunchConfiguration("pcd_map_topic"),
-                ],
-            ),
-            # Conditional RViz launch
-            GroupAction(
-                [
-                    Node(
-                        package="rviz2",
-                        executable="rviz2",
-                        name="rviz",
-                        arguments=[
-                            "-d",
-                            os.path.join(os.getenv("FAST_LIO_LOCALIZATION_DIR"), "rviz_cfg", "localization.rviz"),
-                        ],
-                    )
-                ],
-                condition=IfCondition(LaunchConfiguration("rviz")),
-            ),
-        ]
+    package_path = get_package_share_directory("fast_lio_localization")
+    default_config_path = os.path.join(package_path, "config")
+    default_rviz_config_path = os.path.join(package_path, "rviz", "fastlio_localization.rviz")
+
+    use_sim_time = LaunchConfiguration("use_sim_time")
+    config_path = LaunchConfiguration("config_path")
+    config_file = LaunchConfiguration("config_file")
+    rviz_use = LaunchConfiguration("rviz")
+    rviz_cfg = LaunchConfiguration("rviz_cfg")
+    pcd_map_topic = LaunchConfiguration("pcd_map_topic")
+    pcd_map_path = LaunchConfiguration("map")
+
+    # Declare arguments
+    declare_use_sim_time_cmd = DeclareLaunchArgument(
+        "use_sim_time", default_value="false", description="Use simulation (Gazebo) clock if true"
     )
+    declare_config_path_cmd = DeclareLaunchArgument(
+        "config_path", default_value=default_config_path, description="Yaml config file path"
+    )
+    declare_config_file_cmd = DeclareLaunchArgument(
+        "config_file", default_value="mid360.yaml", description="Config file"
+    )
+    declare_rviz_cmd = DeclareLaunchArgument("rviz", default_value="true", description="Use RViz to monitor results")
+
+    declare_rviz_config_path_cmd = DeclareLaunchArgument(
+        "rviz_cfg", default_value=default_rviz_config_path, description="RViz config file path"
+    )
+
+    declare_map_path = DeclareLaunchArgument("map", default_value="", description="Path to PCD map file")
+    declare_pcd_map_topic = DeclareLaunchArgument(
+        "pcd_map_topic", default_value="/map", description="Topic to publish PCD map"
+    )
+    # Load parameters from yaml file
+
+    fast_lio_node = Node(
+        package="fast_lio",
+        executable="fastlio_mapping",
+        parameters=[PathJoinSubstitution([config_path, config_file]), {"use_sim_time": use_sim_time}],
+        output="screen",
+    )
+    # Global localization node
+    global_localization_node = Node(
+        package="fast_lio_localization",
+        executable="global_localization.py",
+        name="global_localization",
+        output="screen",
+    )
+
+    # Transform fusion node
+    transform_fusion_node = Node(
+        package="fast_lio_localization",
+        executable="transform_fusion.py",
+        name="transform_fusion",
+        output="screen",
+    )
+    # PCD to PointCloud2 publisher
+    pcd_publisher_node = Node(
+        package="pcl_ros",
+        executable="pcd_to_pointcloud",
+        name="map_publisher",
+        output="screen",
+        arguments=[
+            pcd_map_path,
+            "5",
+            "--remap _frame_id:=map",
+            TextSubstitution("cloud_pcd:="),
+            pcd_map_topic,
+        ],
+    )
+
+    rviz_node = Node(package="rviz2", executable="rviz2", arguments=["-d", rviz_cfg], condition=IfCondition(rviz_use))
+
+    ld = LaunchDescription()
+    ld.add_action(declare_use_sim_time_cmd)
+    ld.add_action(declare_config_path_cmd)
+    ld.add_action(declare_config_file_cmd)
+    ld.add_action(declare_rviz_cmd)
+    ld.add_action(declare_rviz_config_path_cmd)
+    ld.add_action(declare_map_path)
+    ld.add_action(declare_pcd_map_topic)
+
+    ld.add_action(fast_lio_node)
+    ld.add_action(rviz_node)
+    ld.add_action(global_localization_node)
+    ld.add_action(transform_fusion_node)
+    ld.add_action(pcd_publisher_node)
+
+    return ld

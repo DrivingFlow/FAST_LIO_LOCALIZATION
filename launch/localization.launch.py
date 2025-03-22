@@ -1,7 +1,7 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, TextSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -55,6 +55,15 @@ def generate_launch_description():
         executable="global_localization.py",
         name="global_localization",
         output="screen",
+        parameters=[{"map_voxel_size": 0.4,
+                     "scan_voxel_size": 0.1,
+                     "freq_localization": 0.5,
+                     "freq_global_map": 0.25,
+                     "localization_threshold": 0.8,
+                     "fov": 6.28319,
+                     "fov_far": 300,
+                     "pcd_map_path": pcd_map_path,
+                     "pcd_map_topic": pcd_map_topic}],
     )
 
     # Transform fusion node
@@ -65,19 +74,21 @@ def generate_launch_description():
         output="screen",
     )
     # PCD to PointCloud2 publisher
-    pcd_publisher_node = Node(
-        package="pcl_ros",
-        executable="pcd_to_pointcloud",
-        name="map_publisher",
-        output="screen",
-        parameters=[{"file_name": pcd_map_path}],
-        arguments=[
-            "5",
-            "--remap _frame_id:=map",
-            TextSubstitution(text="cloud_pcd:="),
-            pcd_map_topic,
-        ],
-    )
+    # pcd_publisher_node = Node(
+    #     package="pcl_ros",
+    #     executable="pcd_to_pointcloud",
+    #     name="map_publisher",
+    #     output="screen",
+    #     parameters=[{"file_name": pcd_map_path,
+    #                  "tf_frame": "map",
+    #                 "cloud_topic": pcd_map_topic,
+    #                 "period_ms_": 500}],
+    #     # arguments=[
+    #     #     "5"],
+    #     # remappings=[
+    #     #     ("cloud_pcd", pcd_map_topic),
+    #     # ]
+    # )
 
     rviz_node = Node(package="rviz2", executable="rviz2", arguments=["-d", rviz_cfg], condition=IfCondition(rviz_use))
 
@@ -94,6 +105,6 @@ def generate_launch_description():
     ld.add_action(rviz_node)
     ld.add_action(global_localization_node)
     ld.add_action(transform_fusion_node)
-    ld.add_action(pcd_publisher_node)
+    # ld.add_action(pcd_publisher_node)
 
     return ld

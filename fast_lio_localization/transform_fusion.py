@@ -3,7 +3,6 @@
 import copy
 import threading
 import time
-
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -65,12 +64,13 @@ class TransformFusion(Node):
         header.stamp = self.get_clock().now().to_msg()
         header.frame_id = self.cur_odom_to_baselink.header.frame_id
         
+        # print(self.cur_odom_to_baselink.header)
         transform_stamped_msg = tf2_ros.TransformStamped(
-                header = header,
-                child_frame_id = "map",
+                header = self.cur_odom_to_baselink.header,
+                child_frame_id = "camera_init",
                 transform = transform_msg
             )
-        transform_stamped_msg.header.frame_id = "camera_init"
+        transform_stamped_msg.header.frame_id = "map"
         self.tf_broadcaster.sendTransform(transform_stamped_msg)
 
         cur_odom = copy.copy(self.cur_odom_to_baselink)

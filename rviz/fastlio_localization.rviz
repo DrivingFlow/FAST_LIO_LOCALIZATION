@@ -67,11 +67,10 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        camera_init:
-          body:
-            {}
-          map:
-            {}
+        map:
+          camera_init:
+            body:
+              {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0.10000000149011612
@@ -243,11 +242,11 @@ Visualization Manager:
           Name: map
           Position Transformer: XYZ
           Selectable: true
-          Size (Pixels): 2
+          Size (Pixels): 1
           Size (m): 0.009999999776482582
           Style: Points
           Topic:
-            Depth: 5
+            Depth: 2
             Durability Policy: Volatile
             Filter size: 10
             History Policy: Keep Last
@@ -339,7 +338,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 51.59140396118164
+      Distance: 82.433349609375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

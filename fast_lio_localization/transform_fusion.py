@@ -23,10 +23,10 @@ class TransformFusion(Node):
         self.cur_map_to_odom = None
 
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
-        self.pub_localization = self.create_publisher(Odometry, "/localization", 10)
+        self.pub_localization = self.create_publisher(Odometry, "/localization", 1)
 
-        self.create_subscription(Odometry, "/Odometry", self.cb_save_cur_odom, 10)
-        self.create_subscription(Odometry, "/map_to_odom", self.cb_save_map_to_odom, 10)
+        self.create_subscription(Odometry, "/Odometry", self.cb_save_cur_odom, 1)
+        self.create_subscription(Odometry, "/map_to_odom", self.cb_save_map_to_odom, 1)
 
         self.freq_pub_localization = 50
         self.timer = self.create_timer(1/self.freq_pub_localization, self.transform_fusion)

@@ -38,14 +38,14 @@ class FastLIOLocalization(Node):
                 ("fov", 6.28319),
                 ("fov_far", 300),
                 ("pcd_map_topic", "/map"),
-                ("pcd_map_path", "/home/wheelchair2/laksh_ws/pcds/lab_map_with_outside_corridor (with ground pcd).pcd"),
+                ("pcd_map_path", ""),
             ],
         )
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
-        self.pub_global_map = self.create_publisher(PointCloud2, self.get_parameter("pcd_map_topic").value, 10)
+        # self.pub_global_map = self.create_publisher(PointCloud2, self.get_parameter("pcd_map_topic").value, 10)
         self.pub_pc_in_map = self.create_publisher(PointCloud2, "/cur_scan_in_map", 10)
         self.pub_submap = self.create_publisher(PointCloud2, "/submap", 10)
         self.pub_map_to_odom = self.create_publisher(Odometry, "/map_to_odom", 10)
@@ -62,7 +62,7 @@ class FastLIOLocalization(Node):
         self.create_subscription(PoseWithCovarianceStamped, "/initialpose", self.cb_initialize_pose, 10)
 
         self.timer_localisation = self.create_timer(1.0 / self.get_parameter("freq_localization").value, self.localisation_timer_callback)
-        self.timer_global_map = self.create_timer(1/ self.get_parameter("freq_global_map").value, self.global_map_callback)
+        # self.timer_global_map = self.create_timer(1/ self.get_parameter("freq_global_map").value, self.global_map_callback)
 
     def global_map_callback(self):
         # self.get_logger().info(np.array(self.global_map.points).shape)
@@ -107,9 +107,11 @@ class FastLIOLocalization(Node):
         
         if pc.shape[1] == 4:
             data["intensity"] = pc[:, 3]
+        # else:
+            # data["rgb"] = np.ones_like(pc)
         msg = ros2_numpy.msgify(PointCloud2, data)
         msg.header = header
-        if pc.shape[1] == 4:
+        if len(msg.fields) == 4:
             msg.point_step = 16
         else:
             msg.point_step = 12
@@ -157,7 +159,7 @@ class FastLIOLocalization(Node):
             self.T_map_to_odom = transformation
             self.publish_odom(transformation)
         else:
-            self.get_logger().warn(f"Fitness score {fitness} less than localiszaion threshold {self.get_parameter('localization_threshold').value}")
+            self.get_logger().warn(f"Fitness score {fitness} less than localization threshold {self.get_parameter('localization_threshold').value}")
 
     def voxel_down_sample(self, pcd, voxel_size):
         # print(pcd)
@@ -185,6 +187,7 @@ class FastLIOLocalization(Node):
         # self.global_map.points = o3d.utility.Vector3dVector(self.msg_to_array(pc_msg)[:, :3])
         self.global_map = o3d.io.read_point_cloud(self.get_parameter("pcd_map_path").value)
         self.global_map = self.voxel_down_sample(self.global_map, self.get_parameter("map_voxel_size").value)
+        # o3d.io.write_point_cloud("/home/wheelchair2/laksh_ws/pcds/lab_map_with_outside_corridor (with ground pcd)_downsampled.pcd", self.global_map)
         self.get_logger().info("Global map received.")
 
     def cb_initialize_pose(self, msg):

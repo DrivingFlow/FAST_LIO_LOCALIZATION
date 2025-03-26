@@ -6,10 +6,15 @@ import rclpy.parameter
 import rclpy.parameter_service
 from sensor_msgs.msg import PointCloud2, Imu
 from livox_ros_driver2.msg import CustomMsg
-from sensor_msgs.msg import PointCloud2
 import ros2_numpy
-from rcl_interfaces.srv import GetParameters
+# from rcl_interfaces.srv import GetParameters
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
+qos_profile = QoSProfile(
+    reliability=ReliabilityPolicy.RELIABLE,  # Ensure reliable message delivery
+    history=HistoryPolicy.KEEP_LAST,        # Keep the last few messages
+    depth=10                                # Increase buffer size
+)
 
 class LivoxLaserToPointcloud(Node):
     def __init__(self):
@@ -18,12 +23,12 @@ class LivoxLaserToPointcloud(Node):
         xfer_format = self.declare_parameter("xfer_format", 0).value
 
         if xfer_format == 0:
-            self.pub_scan = self.create_publisher(PointCloud2, "/livox/lidar", 10)
-            self.sub_scan = self.create_subscription(PointCloud2, "/livox/inverted_lidar", self.pointcloud2_callback, 10)
+            self.pub_scan = self.create_publisher(PointCloud2, "/livox/lidar", qos_profile=qos_profile)
+            self.sub_scan = self.create_subscription(PointCloud2, "/livox/inverted_lidar", self.pointcloud2_callback, qos_profile=qos_profile)
 
         elif xfer_format == 1:
-            self.pub_scan = self.create_publisher(CustomMsg, "/livox/lidar", 10)
-            self.sub_scan = self.create_subscription(CustomMsg, "/livox/inverted_lidar", self.custom_msg_callback, 10)
+            self.pub_scan = self.create_publisher(CustomMsg, "/livox/lidar", qos_profile=qos_profile)
+            self.sub_scan = self.create_subscription(CustomMsg, "/livox/inverted_lidar", self.custom_msg_callback, qos_profile=qos_profile)
 
         else:
             self.get_logger().error(f"Method undefined for xfer_format = {xfer_format}")
@@ -31,31 +36,9 @@ class LivoxLaserToPointcloud(Node):
             
             return
 
-        self.pub_imu = self.create_publisher(Imu, "/livox/imu", 10)
-        self.sub_imu = self.create_subscription(Imu, "/livox/inverted_imu", self.imu_callback, 10)
+        self.pub_imu = self.create_publisher(Imu, "/livox/imu", qos_profile=qos_profile)
+        self.sub_imu = self.create_subscription(Imu, "/livox/inverted_imu", self.imu_callback, qos_profile=qos_profile)
         
-    # def get_xfer_format(self):
-    #     """Get the 'xfer_format' parameter from the Livox ROS 2 driver."""
-    #     try:            
-    #         param_client = self.create_client(GetParameters, "/livox_lidar_publisher/get_parameters")
-    #         self.get_logger().info("Waiting for Livox driver parameter service...")
-            
-            
-    #         while not param_client.wait_for_service(timeout_sec=2.0):
-    #             self.get_logger().warn("Waiting for Livox driver parameter service...")
-
-    #         request = GetParameters.Request()
-    #         request.names = ["xfer_format"]
-    #         future = param_client.call_async(request)
-    #         rclpy.spin_until_future_complete(self, future)
-
-    #         if future.result() is not None and len(future.result().values) > 0:
-    #             return future.result().values[0].integer_value  # Extract integer parameter value
-
-    #     except Exception as e:
-    #         self.get_logger().error(f"Failed to get xfer_format from Livox driver: {e}")
-
-    #     return -1  # Default to -1 if parameter fetch fails
 
     def pointcloud2_callback(self, msg: PointCloud2):
         data = ros2_numpy.numpify(msg)
@@ -82,12 +65,14 @@ class LivoxLaserToPointcloud(Node):
             p.z = -p.z
             
         # msg.header.stamp = self.get_clock().now().to_msg()
-
+        # msg.timebase = int(str(msg.header.stamp.sec) + str(msg.header.stamp.nanosec))
+        
         self.pub_scan.publish(msg)
 
     def imu_callback(self, msg: Imu):
         msg.angular_velocity.y = -msg.angular_velocity.y
         msg.angular_velocity.z = -msg.angular_velocity.z
+        # msg.linear_acceleration.z = -msg.linear_acceleration.z
         
         # msg.header.stamp = self.get_clock().now().to_msg()
 

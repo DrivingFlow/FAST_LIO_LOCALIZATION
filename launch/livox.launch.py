@@ -9,7 +9,6 @@ from launch.substitutions import LaunchConfiguration
 # import launch
 
 ################### user configure parameters for ros2 start ###################
-xfer_format   = 1    # 0-Pointcloud2(PointXYZRTL), 1-customized pointcloud format
 multi_topic   = 0    # 0-All LiDARs share the same topic, 1-One LiDAR one topic
 data_src      = 0    # 0-lidar, others-Invalid data src
 publish_freq  = 10.0 # freqency of publish, 5.0, 10.0, 20.0, 50.0, etc.
@@ -18,7 +17,8 @@ frame_id      = 'livox_frame'
 lvx_file_path = '/home/livox/livox_test.lvx'
 cmdline_bd_code = 'livox0000000001'
 
-package_path = get_package_share_directory("livox_ros_driver2")
+# package_path = get_package_share_directory("livox_ros_driver2"
+package_path = "/home/wheelchair2/livox_ws/src/livox_ros_driver2"   # replace with your own path
 cur_config_path = package_path + '/config'
 user_config_path = os.path.join(cur_config_path, 'MID360_config.json')
 rviz_config_path = os.path.join(cur_config_path, 'display_point_cloud_ROS2.rviz')
@@ -28,7 +28,7 @@ def generate_launch_description():
     inverted = LaunchConfiguration("inverted")
     declare_inverted = DeclareLaunchArgument("inverted", default_value="true", description="Specify if the lidar is inverted or not")
     
-    xfer_format = LaunchConfiguration("xfer_format")
+    xfer_format = LaunchConfiguration("xfer_format")    # 0-Pointcloud2(PointXYZRTL), 1-customized pointcloud format
     declare_xfer_format = DeclareLaunchArgument("xfer_format", default_value="1", description="Declare livox msg")
     
     rviz = LaunchConfiguration("rviz")

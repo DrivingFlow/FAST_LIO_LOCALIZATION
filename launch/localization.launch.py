@@ -73,22 +73,21 @@ def generate_launch_description():
         name="transform_fusion",
         output="screen",
     )
+    
     # PCD to PointCloud2 publisher
-    # pcd_publisher_node = Node(
-    #     package="pcl_ros",
-    #     executable="pcd_to_pointcloud",
-    #     name="map_publisher",
-    #     output="screen",
-    #     parameters=[{"file_name": pcd_map_path,
-    #                  "tf_frame": "map",
-    #                 "cloud_topic": pcd_map_topic,
-    #                 "period_ms_": 500}],
-    #     # arguments=[
-    #     #     "5"],
-    #     # remappings=[
-    #     #     ("cloud_pcd", pcd_map_topic),
-    #     # ]
-    # )
+    pcd_publisher_node = Node(
+        package="pcl_ros",
+        executable="pcd_to_pointcloud",
+        name="map_publisher",
+        output="screen",
+        parameters=[{"file_name": pcd_map_path,
+                     "tf_frame": "map",
+                    "cloud_topic": pcd_map_topic,
+                    "period_ms_": 500}],
+        remappings=[
+            ("cloud_pcd", pcd_map_topic),
+        ]
+    )
 
     rviz_node = Node(package="rviz2", executable="rviz2", arguments=["-d", rviz_cfg], condition=IfCondition(rviz_use))
 
@@ -105,6 +104,6 @@ def generate_launch_description():
     ld.add_action(rviz_node)
     ld.add_action(global_localization_node)
     ld.add_action(transform_fusion_node)
-    # ld.add_action(pcd_publisher_node)
+    ld.add_action(pcd_publisher_node)
 
     return ld

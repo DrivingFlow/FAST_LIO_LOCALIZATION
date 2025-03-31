@@ -50,6 +50,10 @@ check your numpy version, must be <1.24
 ```shell
 pip install open3d
 ```
+- pcl_ros
+```shell
+sudo apt-get install ros-$distro-pcl-ros
+```
 
 - To resolve numpy float issue - replace 'np.float' with 'np.float64' or just 'float' in the following file
 ```shell

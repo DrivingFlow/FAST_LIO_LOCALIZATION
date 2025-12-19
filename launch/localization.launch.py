@@ -20,6 +20,7 @@ def generate_launch_description():
     rviz_cfg = LaunchConfiguration("rviz_cfg")
     pcd_map_topic = LaunchConfiguration("pcd_map_topic")
     pcd_map_path = LaunchConfiguration("map")
+    icp_method = LaunchConfiguration("icp_method")
 
     # Declare arguments
     declare_use_sim_time_cmd = DeclareLaunchArgument(
@@ -40,6 +41,9 @@ def generate_launch_description():
     declare_map_path = DeclareLaunchArgument("map", default_value="", description="Path to PCD map file")
     declare_pcd_map_topic = DeclareLaunchArgument(
         "pcd_map_topic", default_value="/map", description="Topic to publish PCD map"
+    )
+    declare_icp_method_cmd = DeclareLaunchArgument(
+        "icp_method", default_value="torch", description="ICP method: torch, open3d, or pypose"
     )
     # Load parameters from yaml file
 
@@ -63,7 +67,8 @@ def generate_launch_description():
                      "fov": 6.28319,
                      "fov_far": 300,
                      "pcd_map_path": pcd_map_path,
-                     "pcd_map_topic": pcd_map_topic}],
+                     "pcd_map_topic": pcd_map_topic,
+                     "icp_method": icp_method}],
     )
 
     # Transform fusion node
@@ -74,19 +79,16 @@ def generate_launch_description():
         output="screen",
     )
     
-    # PCD to PointCloud2 publisher
+    # PCD to PointCloud2 publisher (custom node for ROS2 Foxy compatibility)
     pcd_publisher_node = Node(
-        package="pcl_ros",
-        executable="pcd_to_pointcloud",
-        name="map_publisher",
+        package="fast_lio_localization",
+        executable="pcd_publisher.py",
+        name="pcd_publisher",
         output="screen",
         parameters=[{"file_name": pcd_map_path,
                      "tf_frame": "map",
-                    "cloud_topic": pcd_map_topic,
-                    "period_ms_": 500}],
-        remappings=[
-            ("cloud_pcd", pcd_map_topic),
-        ]
+                     "cloud_topic": pcd_map_topic,
+                     "period_ms": 500}]
     )
 
     rviz_node = Node(package="rviz2", executable="rviz2", arguments=["-d", rviz_cfg], condition=IfCondition(rviz_use))
@@ -99,6 +101,7 @@ def generate_launch_description():
     ld.add_action(declare_rviz_config_path_cmd)
     ld.add_action(declare_map_path)
     ld.add_action(declare_pcd_map_topic)
+    ld.add_action(declare_icp_method_cmd)
 
     ld.add_action(fast_lio_node)
     ld.add_action(rviz_node)

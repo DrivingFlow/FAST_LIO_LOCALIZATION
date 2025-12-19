@@ -19,6 +19,7 @@ setup(
             "publish_initial_pose = fast_lio_localization.publish_initial_pose:main",
             "transform_fusion = fast_lio_localization.transform_fusion:main",
             "invert_livox_scan = fast_lio_localization.invert_livox_scan:main",
+            "pcd_publisher = fast_lio_localization.pcd_publisher:main",
         ],
     },
     data_files=[

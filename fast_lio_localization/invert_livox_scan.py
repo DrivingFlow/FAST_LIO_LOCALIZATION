@@ -7,6 +7,7 @@ import rclpy.parameter_service
 from sensor_msgs.msg import PointCloud2, Imu
 from livox_ros_driver2.msg import CustomMsg
 import ros2_numpy
+import numpy as np
 # from rcl_interfaces.srv import GetParameters
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
@@ -42,21 +43,23 @@ class LivoxLaserToPointcloud(Node):
 
     def pointcloud2_callback(self, msg: PointCloud2):
         data = ros2_numpy.numpify(msg)
-        # print(data)
         
         pc = data['xyz']
-        # print(pc)
         pc[:, 1] = -pc[:, 1]
         pc[:, 2] = -pc[:, 2]
-        # print(pc)
         
-        data = {"xyz": pc}  # Invert Y, Z
-        # print(data)
+        # Create structured array for ros2_numpy.msgify
+        cloud_arr = np.zeros(len(pc), dtype=[
+            ('x', np.float32),
+            ('y', np.float32),
+            ('z', np.float32)
+        ])
+        cloud_arr['x'] = pc[:, 0]
+        cloud_arr['y'] = pc[:, 1]
+        cloud_arr['z'] = pc[:, 2]
 
-        out_msg = ros2_numpy.msgify(PointCloud2, data)
+        out_msg = ros2_numpy.msgify(PointCloud2, cloud_arr)
         out_msg.header = msg.header
-        # out_msg.header.stamp = self.get_clock().now().to_msg()
-        out_msg.point_step = 12
         self.pub_scan.publish(out_msg)
 
     def custom_msg_callback(self, msg: CustomMsg):

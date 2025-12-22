@@ -369,12 +369,14 @@ class FastLIOLocalization(Node):
             self.prev_pose = transformation
             self.publish_odom(transformation)
             return
-        if fitness > self.get_parameter("localization_threshold").value and delta_trans < 0.15:
+        # FOR EHSAN: GET RID OF DELTA_TRANS CONDITION IF LOCALIZATION DOESN'T WORK WELL
+        if fitness > self.get_parameter("localization_threshold").value and delta_trans < 1.5:
             self.T_map_to_odom = transformation
             self.prev_pose = transformation
             self.publish_odom(transformation)
             self.get_logger().info("\033[92mLocalization accepted.\033[0m")
-        elif fitness > self.get_parameter("localization_threshold").value and delta_trans > 0.15:
+        # FOR EHSAN: GET RID OF DELTA_TRANS CONDITION IF LOCALIZATION DOESN'T WORK WELL
+        elif fitness > self.get_parameter("localization_threshold").value and delta_trans > 1.5:
             if self.prev_pose is None:
                 self.get_logger().warn(
                     "Localization error too large and prev_pose is None; skipping odom publish this cycle."
@@ -385,10 +387,7 @@ class FastLIOLocalization(Node):
             self.get_logger().warn("\033[93mFalling back to previous pose\033[0m")
         else:
             self.get_logger().warn(
-                "\033[91m"
-                f"Fitness score {fitness} less than localization threshold {self.get_parameter('localization_threshold').value} "
-                f"or error {delta_trans} too high; localization rejected."
-                "\033[0m"
+                "\033[91mLocalization skipped.\033[0m"
             )
 
     def _maybe_update_rmse_plot(self, rmse, delta_trans=0.0, stamp=None):

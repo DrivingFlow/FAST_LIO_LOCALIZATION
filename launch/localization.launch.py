@@ -61,7 +61,7 @@ def generate_launch_description():
         output="screen",
         parameters=[{"map_voxel_size": 0.4,
                      "scan_voxel_size": 0.1,
-                     "freq_localization": 0.5,
+                     "freq_localization": 2.0,          # FOR EHSAN: CHANGE FREQ TO 0.5
                      "freq_global_map": 0.25,
                      "localization_threshold": 0.8,
                      "fov": 6.28319,

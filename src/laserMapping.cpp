@@ -52,6 +52,8 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/PCLPointCloud2.h>
+#include <pcl/conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/imu.hpp>
@@ -86,6 +88,7 @@ condition_variable sig_buffer;
 
 string root_dir = ROOT_DIR;
 string map_file_path, lid_topic, imu_topic;
+bool use_fixed_map = false;
 
 double res_mean_last = 0.05, total_residual = 0.0;
 double last_timestamp_lidar = 0, last_timestamp_imu = -1.0;
@@ -120,6 +123,45 @@ pcl::VoxelGrid<PointType> downSizeFilterSurf;
 pcl::VoxelGrid<PointType> downSizeFilterMap;
 
 KD_TREE ikdtree;
+
+static bool build_kdtree_from_offline_pcd(const std::string &pcd_path)
+{
+    if (pcd_path.empty())
+    {
+        std::cerr << "[fastlio_mapping] mapping.use_fixed_map is true but map_file_path is empty" << std::endl;
+        return false;
+    }
+
+    pcl::PCLPointCloud2 cloud2;
+    if (pcl::io::loadPCDFile(pcd_path, cloud2) < 0)
+    {
+        std::cerr << "[fastlio_mapping] failed to load offline map PCD: " << pcd_path << std::endl;
+        return false;
+    }
+
+    PointCloudXYZI::Ptr map_cloud(new PointCloudXYZI());
+    pcl::fromPCLPointCloud2(cloud2, *map_cloud);
+    if (map_cloud->empty())
+    {
+        std::cerr << "[fastlio_mapping] offline map PCD is empty: " << pcd_path << std::endl;
+        return false;
+    }
+
+    PointCloudXYZI::Ptr map_cloud_ds(new PointCloudXYZI());
+    downSizeFilterMap.setInputCloud(map_cloud);
+    downSizeFilterMap.filter(*map_cloud_ds);
+    if (map_cloud_ds->empty())
+    {
+        std::cerr << "[fastlio_mapping] offline map became empty after voxel filter: " << pcd_path << std::endl;
+        return false;
+    }
+
+    ikdtree.set_downsample_param(filter_size_map_min);
+    ikdtree.Build(map_cloud_ds->points);
+    std::cout << "[fastlio_mapping] built fixed-map ikdtree from " << map_cloud_ds->points.size()
+              << " points (" << pcd_path << ")" << std::endl;
+    return ikdtree.Root_Node != nullptr;
+}
 
 V3F XAxisPoint_body(LIDAR_SP_LEN, 0.0, 0.0);
 V3F XAxisPoint_world(LIDAR_SP_LEN, 0.0, 0.0);
@@ -233,6 +275,11 @@ BoxPointType LocalMap_Points;
 bool Localmap_Initialized = false;
 void lasermap_fov_segment()
 {
+    if (use_fixed_map)
+    {
+        // Fixed-map localization: do not delete/slide the map window.
+        return;
+    }
     cub_needrm.clear();
     kdtree_delete_counter = 0;
     kdtree_delete_time = 0.0;
@@ -744,6 +791,7 @@ public:
         this->declare_parameter<double>("preprocess.max_range", 100.f);
         this->declare_parameter<bool>("publish.scan_bodyframe_pub_en", true);
         this->declare_parameter<int>("max_iteration", 4);
+        this->declare_parameter<string>("map_file_path", "");
         this->declare_parameter<string>("common.lid_topic", "/livox/lidar");
         this->declare_parameter<string>("common.imu_topic", "/livox/imu");
         this->declare_parameter<bool>("common.time_sync_en", false);
@@ -754,6 +802,7 @@ public:
         this->declare_parameter<double>("cube_side_length", 200.);
         this->declare_parameter<float>("mapping.det_range", 300.);
         this->declare_parameter<double>("mapping.fov_degree", 180.);
+        this->declare_parameter<bool>("mapping.use_fixed_map", false);
         this->declare_parameter<double>("mapping.gyr_cov", 0.1);
         this->declare_parameter<double>("mapping.acc_cov", 0.1);
         this->declare_parameter<double>("mapping.b_gyr_cov", 0.0001);
@@ -787,6 +836,7 @@ public:
         this->get_parameter_or<double>("cube_side_length", cube_len, 200.f);
         this->get_parameter_or<float>("mapping.det_range", DET_RANGE, 300.f);
         this->get_parameter_or<double>("mapping.fov_degree", fov_deg, 180.f);
+        this->get_parameter_or<bool>("mapping.use_fixed_map", use_fixed_map, false);
         this->get_parameter_or<double>("mapping.gyr_cov", gyr_cov, 0.1);
         this->get_parameter_or<double>("mapping.acc_cov", acc_cov, 0.1);
         this->get_parameter_or<double>("mapping.b_gyr_cov", b_gyr_cov, 0.0001);
@@ -825,6 +875,16 @@ public:
         downSizeFilterMap.setLeafSize(filter_size_map_min, filter_size_map_min, filter_size_map_min);
         memset(point_selected_surf, true, sizeof(point_selected_surf));
         memset(res_last, -1000.0f, sizeof(res_last));
+
+        if (use_fixed_map)
+        {
+            RCLCPP_WARN(this->get_logger(), "mapping.use_fixed_map=true: running scan-to-offline-map localization (no online map updates)");
+            if (!build_kdtree_from_offline_pcd(map_file_path))
+            {
+                RCLCPP_ERROR(this->get_logger(), "Failed to build offline map KD-tree; falling back to online mapping. Check map_file_path: %s", map_file_path.c_str());
+                use_fixed_map = false;
+            }
+        }
 
         Lidar_T_wrt_IMU << VEC_FROM_ARRAY(extrinT);
         Lidar_R_wrt_IMU << MAT_FROM_ARRAY(extrinR);
@@ -998,7 +1058,10 @@ private:
 
             /*** add the feature points to map kdtree ***/
             t3 = omp_get_wtime();
-            map_incremental();
+            if (!use_fixed_map)
+            {
+                map_incremental();
+            }
             t5 = omp_get_wtime();
 
             /******* Publish points *******/

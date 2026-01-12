@@ -21,6 +21,7 @@ def generate_launch_description():
     pcd_map_topic = LaunchConfiguration("pcd_map_topic")
     pcd_map_path = LaunchConfiguration("map")
     icp_method = LaunchConfiguration("icp_method")
+    use_fixed_map = LaunchConfiguration("use_fixed_map")
 
     # Declare arguments
     declare_use_sim_time_cmd = DeclareLaunchArgument(
@@ -39,6 +40,11 @@ def generate_launch_description():
     )
 
     declare_map_path = DeclareLaunchArgument("map", default_value="", description="Path to PCD map file")
+    declare_use_fixed_map_cmd = DeclareLaunchArgument(
+        "use_fixed_map",
+        default_value="false",
+        description="If true, fastlio_mapping localizes against map_file_path (offline PCD) and disables online map updates",
+    )
     declare_pcd_map_topic = DeclareLaunchArgument(
         "pcd_map_topic", default_value="/map", description="Topic to publish PCD map"
     )
@@ -50,7 +56,12 @@ def generate_launch_description():
     fast_lio_node = Node(
         package="fast_lio_localization",
         executable="fastlio_mapping",
-        parameters=[PathJoinSubstitution([config_path, config_file]), {"use_sim_time": use_sim_time}],
+        parameters=[
+            PathJoinSubstitution([config_path, config_file]),
+            {"use_sim_time": use_sim_time},
+            {"map_file_path": pcd_map_path},
+            {"mapping.use_fixed_map": use_fixed_map},
+        ],
         output="screen",
     )
     # Global localization node
@@ -100,6 +111,7 @@ def generate_launch_description():
     ld.add_action(declare_rviz_cmd)
     ld.add_action(declare_rviz_config_path_cmd)
     ld.add_action(declare_map_path)
+    ld.add_action(declare_use_fixed_map_cmd)
     ld.add_action(declare_pcd_map_topic)
     ld.add_action(declare_icp_method_cmd)
 
